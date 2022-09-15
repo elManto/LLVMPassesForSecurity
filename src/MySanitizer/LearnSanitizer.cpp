@@ -163,26 +163,25 @@ struct LearnSanitizerModulePass : public ModulePass {
     hook_exit = M.getOrInsertFunction("__hook_exit", VoidTy, Int8PTy);
     
 
-	vector<Instruction*> Stores, Loads;
+    vector<Instruction*> Stores, Loads;
     vector<CallInst*> Mallocs, Frees;
     vector<Instruction*> EntryPoints;
     vector<Instruction*> ReturnInstructions;
     
 
-	for (Function& F : M) {
+    for (Function& F : M) {
         if (isBlacklisted(F))
             continue;
-		for (BasicBlock& BB : F) {
+        for (BasicBlock& BB : F) {
 
             if (&F.getEntryBlock() == &BB)
                 EntryPoints.push_back(&(BB.front()));
 
-			for (Instruction& I : BB) {
+            for (Instruction& I : BB) {
 
-				if (StoreInst* ST = dyn_cast<StoreInst>(&I)) {
-					Stores.push_back(ST);
-					
-				}
+                if (StoreInst* ST = dyn_cast<StoreInst>(&I)) {
+                    Stores.push_back(ST);
+                }
                 else if (LoadInst* LO = dyn_cast<LoadInst>(&I)) {
                     Loads.push_back(LO);
                 }
@@ -202,9 +201,9 @@ struct LearnSanitizerModulePass : public ModulePass {
                 else if (ReturnInst* RI = dyn_cast<ReturnInst>(&I)) {
                     ReturnInstructions.push_back(RI);
                 }
-			}
-		}
-	}
+            }
+        }
+    }
 
     InstrumentEntryOrExitPoints(EntryPoints, M, hook_entry);
 
