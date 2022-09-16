@@ -123,7 +123,7 @@ struct FuzzingModulePass : public ModulePass {
         if (isBlacklisted(F) || F.size() < MIN_FCN_SIZE)
             continue;
 
-        int has_calls = 0;
+        int are_there_calls = 0;
         for (auto &BB : F) {
             Value* PrevCtx = nullptr;
 
@@ -135,7 +135,7 @@ struct FuzzingModulePass : public ModulePass {
                     // We skip leaf functions
 
                     for (auto &SecondBB : F) {
-                        if (has_calls)
+                        if (are_there_calls)
                             break;
                         
                         for (auto &I : SecondBB) {
@@ -144,23 +144,21 @@ struct FuzzingModulePass : public ModulePass {
                                 if (!Callee || Callee->size() < MIN_FCN_SIZE)
                                     continue;
                                 else {
-                                    has_calls = 1;
+                                    are_there_calls = 1;
                                     break;
                                 }
                             }
                         }
                     }
-                    if (has_calls) {
+                    if (are_there_calls) {
 
                         LoadInst* PrevCtxLoad = IRB.CreateLoad(AFLContext);
                         PrevCtx = static_cast<Value*>(PrevCtxLoad);
-                        PrevCtxLoad->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(*C, None));
     
                         unsigned cur_ctx = random() % MAP_SIZE;
                         Value* CurCtx = ConstantInt::get(Int32Ty, cur_ctx);
                         
                         StoreInst* StoreCtx = IRB.CreateStore(IRB.CreateXor(PrevCtx, CurCtx), AFLContext);
-                        StoreCtx->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(*C, None));
                     
                     }
                 }
@@ -199,14 +197,13 @@ struct FuzzingModulePass : public ModulePass {
             StoreInst* UpdatePrevLocation = IRB.CreateStore(ConstantInt::get(Int32Ty, cur_loc >> 1), AFLPrevLocation);
             UpdatePrevLocation->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(*C, None));
 
-            if (ctx && has_calls) {
+            if (ctx && are_there_calls) {
                 //restore old ctx when return
                 Instruction* I = BB.getTerminator();
                 if (isa<ReturnInst>(I)) {
                     IRBuilder<> Restore_IRB(I);
                     StoreInst* Restore = Restore_IRB.CreateStore(PrevCtx, AFLContext);
                     
-                    Restore->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(*C, None));
                 }
             }
 
